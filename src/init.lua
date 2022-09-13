@@ -12,25 +12,27 @@ local _Maid = require(Packages.Maid)
 export type NoiseSolver = _Math.NoiseSolver
 export type LandmasterConfigData = Types.LandmasterConfigData
 export type TerrainData<T> = Types.TerrainData<T>
+export type Landmaster = Types.Landmaster
 
 --- @class Landmaster
 --- A configurable worker that can solve and build terrain.
-local Landmaster = {}
+local Landmaster: Landmaster = {} :: any
 Landmaster.__index = Landmaster
 
 --- Cleans up landmaster.
 function Landmaster:Destroy()
-	self:Clear()
+	-- self:Clear()
 	self._Maid:Destroy()
 	for k, v in pairs(self) do
 		self[k] = nil
 	end
 	setmetatable(self, nil)
+	return nil
 end
 
 --- Constructs a landmaster.
-function Landmaster.new(config: LandmasterConfigData)
-	Terrain:Clear()
+function Landmaster.new(config: LandmasterConfigData): Landmaster
+	-- Terrain:Clear()
 	local self = {
 		_Config = config,
 		Solver = Solver.new(config),
@@ -39,11 +41,6 @@ function Landmaster.new(config: LandmasterConfigData)
 	setmetatable(self, Landmaster)
 
 	return self :: any
-end
-
-function Landmaster:Clear()
-	Terrain:Clear()
-	self._Maid:DoCleaning()
 end
 
 --- Renders a map gui for the provided solver.
@@ -162,7 +159,7 @@ function Landmaster:BuildRegionTerrain(gridRegion: Region3, materialData: Terrai
 		materialData,
 		precisionData
 	)
-
+	return nil
 end
 
 return Landmaster

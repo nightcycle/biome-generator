@@ -2,6 +2,7 @@
 local Package = script.Parent
 local Packages = Package.Parent
 local _Math = require(Packages.Math)
+local _Maid = require(Packages.Maid)
 
 local Types = {}
 
@@ -29,12 +30,16 @@ export type LandmasterConfigData = {
 	},
 }
 
-
 export type Landmaster = {
+	__index: Landmaster,
+	_Maid: _Maid.Maid,
+	_Config: LandmasterConfigData,
 	new: (LandmasterConfigData) -> Landmaster,
 	Destroy: (Landmaster) -> nil,
-	Clone: (Landmaster) -> Landmaster,
-	BuildRegion: (self: Landmaster, start: Vector3, finish: Vector3) -> Model
+	Solver: {[string]: any},
+	Debug: (self: Landmaster, map: NoiseSolver, resolution: number, scale: number) -> Frame,
+	SolveRegionTerrain: (self: Landmaster, region:Region3) -> (Region3, TerrainData<Enum.Material>, TerrainData<number>),
+	BuildRegionTerrain: (self: Landmaster, gridRegion: Region3, materialData: TerrainData<Enum.Material>, precisionData: TerrainData<number>) -> nil,
 }
 
 
