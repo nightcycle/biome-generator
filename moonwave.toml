@@ -1,22 +1,36 @@
-title = "package"  # From Git
-gitRepoUrl = "https://github.com/nightcycle/project" # From Git
-
+title = "Landmaster"  # From Git
+organizationName = "nightcycle"
+gitRepoUrl = "https://github.com/nightcycle/landmaster" # From Git
 gitSourceBranch = "master"
+projectName = "landmaster"
+url = "https://nightcycle.github.io"
+baseUrl = "/landmaster/"
 changelog = true
 classOrder = []
 
 [docusaurus]
 onBrokenLinks = "throw"
 onBrokenMarkdownLinks = "warn"
-favicon = "/"
+favicon = "/favicon.png"
+tagline = "An analytics framework to turn every game you touch to gold."
 
-# From git:
-organizationName = "nightcycle"
-projectName = "project"
-url = "https://nightcycle.github.io"
-baseUrl = "/package/"
-tagline = "because documenting your code is cool"
+[home]
+enabled = true
+includeReadme = true
 
 [footer]
 style = "dark"
 copyright = "Copyright © 2022 Nightcycle Studios. Built with Moonwave and Docusaurus"
+
+
+[[home.features]]
+title = "Decentralized"
+description = "Empowers you to track state where it's being used."
+
+[[home.features]]
+title = "Organized"
+description = "Stores state in flexible and navigable hierarchies."
+
+[[home.features]]
+title = "Efficient"
+description = "Endeavors to allow you to store as much information as you want."
