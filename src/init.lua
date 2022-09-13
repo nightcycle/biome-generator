@@ -2,7 +2,6 @@
 local Package = script
 local Packages = Package.Parent
 local Terrain = workspace.Terrain
-local TerrainUtil = require(script.Terrain)
 
 local Solver = require(script.Solver)
 local Types = require(Package.Types)
@@ -32,7 +31,7 @@ end
 
 --- Constructs a landmaster.
 function Landmaster.new(config: Types.LandmasterConfigData)
-	TerrainUtil.clear()
+	Terrain:Clear()
 	local self = {
 		_Config = config,
 		Solver = Solver.new(config),
@@ -44,7 +43,7 @@ function Landmaster.new(config: Types.LandmasterConfigData)
 end
 
 function Landmaster:Clear()
-	TerrainUtil.clear()
+	Terrain:Clear()
 	self._Maid:DoCleaning()
 end
 
@@ -70,34 +69,14 @@ function Landmaster:Debug(map: _Math.NoiseSolver, resolution: number, scale: num
 	return frame
 end
 
---- Constructs a region.
-function Landmaster:BuildRegion(mainRegion: Region3): Model
-	local start = mainRegion.CFrame.Position - mainRegion.Size/2
-	local finish = mainRegion.CFrame.Position + mainRegion.Size/2
+--- Constructs a gridRegion.
+function Landmaster:SolveRegionTerrain(region:Region3): (Region3, Types.TerrainData<Enum.Material>, Types.TerrainData<number>)
+	local start = region.CFrame.Position - region.Size/2
+	local finish = region.CFrame.Position + region.Size/2
 
 	start = Terrain:WorldToCell(start) * 4
 	finish = Terrain:WorldToCell(finish) * 4
 
-	local regionModel = Instance.new("Model")
-
-	local anchor = Instance.new("Part")
-	anchor.Name = "Anchor"
-	anchor.Transparency = 1
-	anchor.Anchored = true
-	anchor.Locked = true
-	anchor.Size = finish - start
-	anchor.Position = start + anchor.Size/2
-	anchor.Parent = regionModel
-
-	local selectionBox = Instance.new("SelectionBox")
-	selectionBox.Parent = anchor
-	selectionBox.Adornee = anchor
-	
-	regionModel.PrimaryPart = anchor
-
-	-- for x=start.X, finish.X, 4 do
-		-- task.wait()
-		-- for z=start.Z, finish.Z, 4 do
 	local originPosition = Vector2.new(start.X, start.Z)*4
 	
 	local heightCeiling: number = self._Config.HeightCeiling
@@ -105,7 +84,7 @@ function Landmaster:BuildRegion(mainRegion: Region3): Model
 
 	local regStart = Terrain:WorldToCell(Vector3.new(originPosition.X, 0, originPosition.Y))
 	local regSize = Vector2.new(finish.X - start.X, finish.Z - start.Z)
-	local region = Region3.new(
+	local gridRegion = Region3.new(
 		regStart,
 		regStart + Vector3.new(regSize.X, heightCeiling, regSize.Y)
 	):ExpandToGrid(4)
@@ -120,12 +99,12 @@ function Landmaster:BuildRegion(mainRegion: Region3): Model
 		end	
 		return ret
 	end
-	local layerCount = region.Size.Y/4
-	local xCount = region.Size.X/4
-	local zCount = region.Size.Z/4
+	local layerCount = gridRegion.Size.Y/4
+	local xCount = gridRegion.Size.X/4
+	local zCount = gridRegion.Size.Z/4
 	local matGrid = create3dTable(Vector3.new(xCount,layerCount,zCount))
 	local preGrid = create3dTable(Vector3.new(xCount,layerCount,zCount))
-	local surfaceThickness = 2
+	local surfaceThickness = 8
 
 	for xIndex=1, xCount do
 		for zIndex=1, zCount do
@@ -146,9 +125,9 @@ function Landmaster:BuildRegion(mainRegion: Region3): Model
 					if height < waterHeight then
 						material = Enum.Material.Mud
 					elseif distFromSurface < surfaceThickness then
-						if normal > 0.8 then
+						if normal > 0.9 then
 							material = Enum.Material.Rock
-						elseif normal > 0.7 then
+						elseif normal > 0.8 then
 							material = Enum.Material.Ground
 						else
 							material = surfaceMaterial
@@ -171,15 +150,19 @@ function Landmaster:BuildRegion(mainRegion: Region3): Model
 			end
 		end
 	end
+	return gridRegion, matGrid, preGrid
+end
+
+
+function Landmaster:BuildRegionTerrain(gridRegion: Region3, materialData: Types.TerrainData<Enum.Material>, precisionData: Types.TerrainData<number>)
 
 	Terrain:WriteVoxels(
-		region,
+		gridRegion,
 		4,
-		matGrid,
-		preGrid
+		materialData,
+		precisionData
 	)
 
-	return regionModel
 end
 
 return Landmaster

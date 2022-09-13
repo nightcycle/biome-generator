@@ -5,12 +5,6 @@ local _Math = require(Packages.Math)
 
 local Types = {}
 
-export type BiomeData = {
-	Name: string,
-	Material: (Enum.Material),
-
-}
-
 export type LandmasterConfigData = {
 	Seed: number,
 	Origin: Vector2,
@@ -18,13 +12,10 @@ export type LandmasterConfigData = {
 	Width: number,
 	HeightCeiling: number,
 	WaterHeight: number,
-	Biomes: {[number]: BiomeData},
 	Maps: {
 		Height: _Math.NoiseSolver?,
 		Heat: _Math.NoiseSolver?,
 		Rain: _Math.NoiseSolver?,
-		-- River: _Math.NoiseSolver?,
-		-- Terrain: _Math.NoiseSolver?,
 	},
 }
 
@@ -34,5 +25,8 @@ export type Landmaster = {
 	Clone: (Landmaster) -> Landmaster,
 	BuildRegion: (self: Landmaster, start: Vector3, finish: Vector3) -> Model
 }
+
+export type TerrainData<T> = {[number]: {[number]: {[number]: T}}}
+
 
 return Types

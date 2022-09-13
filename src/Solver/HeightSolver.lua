@@ -32,7 +32,7 @@ return function(config: Types.LandmasterConfigData, terrainSolver: _Math.NoiseSo
 		local distFromCenter = (Vector2.new(0.5, 0.5) - alpha).Magnitude
 		local linearReduction = _Math.max(1 - (distFromCenter / 0.5), 0)
 		local easedReduction =
-			_Math.Algebra.ease(linearReduction ^ 0.145, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+			_Math.Algebra.ease(linearReduction ^ 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
 		local easedHeight = easedReduction * baseValue
 
 		local riverValue = riverSolver(alpha)

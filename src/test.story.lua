@@ -19,30 +19,28 @@ return function(coreGui: ScreenGui)
 
 		local landmaster = _Module.new({
 			Seed = 1229534,
-			Width = 1024*8,
+			Width = 1024*2,
 			HeightCeiling = 100,
 			WaterHeight = 30,
 			Frequency = 4,
 			Origin = Vector2.new(0,0),
-			Biomes = {},
 			Maps = {},
 		})
 		local pos = Vector3.new(0,0,0)
 		local size = Vector3.new(1,1,1)
-		local updateStarted = false
+		-- local updateStarted = false
 		local function update(dT: number)
 			if size == target.Size and pos == target.Position then return end
-			if updateStarted then return end
-			updateStarted = true
+			-- if updateStarted then return end
+			-- updateStarted = true
 			pos = target.Position
 			size = target.Size
 
-			-- landmaster:Clear()
+			local region, matGrid, preGrid = landmaster:SolveRegionTerrain(Region3.new(pos - size/2, pos + size/2))
 
-			local landModel = landmaster:BuildRegion(Region3.new(pos - size/2, pos + size/2))
-			landModel.Parent = mapFolder
-			maid._landModel = landModel
-			updateStarted = false
+			landmaster:BuildRegionTerrain(region, matGrid, preGrid)
+			
+			-- updateStarted = false
 		end
 		local index = 0
 		local function _debug(map)
