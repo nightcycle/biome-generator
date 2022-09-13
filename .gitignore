@@ -4,6 +4,7 @@
 Packages
 /.gitconfig
 /out
+/build
 /sourcemap.json
 sourcemap
 sourcemap.json

@@ -9,10 +9,10 @@ changelog = true
 classOrder = []
 
 [docusaurus]
-onBrokenLinks = "throw"
+onBrokenLinks = "warn"
 onBrokenMarkdownLinks = "warn"
 favicon = "/favicon.png"
-tagline = "An analytics framework to turn every game you touch to gold."
+tagline = "A map generation framework."
 
 [home]
 enabled = true
@@ -24,13 +24,13 @@ copyright = "Copyright © 2022 Nightcycle Studios. Built with Moonwave and Docus
 
 
 [[home.features]]
-title = "Decentralized"
-description = "Empowers you to track state where it's being used."
+title = "Configurable"
+description = "Empowers you to swap out your own noise maps for different outcomes."
 
 [[home.features]]
-title = "Organized"
-description = "Stores state in flexible and navigable hierarchies."
+title = "Parallel Enabled"
+description = "Designed for usage alongside parallel-lua empowered workflows."
 
 [[home.features]]
-title = "Efficient"
-description = "Endeavors to allow you to store as much information as you want."
+title = "Lightweight"
+description = "A fancy way of saying this is a smaller project."

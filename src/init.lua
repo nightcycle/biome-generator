@@ -9,6 +9,10 @@ local Types = require(Package.Types)
 local _Math = require(Packages.Math)
 local _Maid = require(Packages.Maid)
 
+export type NoiseSolver = _Math.NoiseSolver
+export type LandmasterConfigData = Types.LandmasterConfigData
+export type TerrainData<T> = Types.TerrainData<T>
+
 --- @class Landmaster
 --- A configurable worker that can solve and build terrain.
 local Landmaster = {}
@@ -24,13 +28,8 @@ function Landmaster:Destroy()
 	setmetatable(self, nil)
 end
 
---- Clones a landmaster.
-function Landmaster:Clone()
-
-end
-
 --- Constructs a landmaster.
-function Landmaster.new(config: Types.LandmasterConfigData)
+function Landmaster.new(config: LandmasterConfigData)
 	Terrain:Clear()
 	local self = {
 		_Config = config,
@@ -47,7 +46,8 @@ function Landmaster:Clear()
 	self._Maid:DoCleaning()
 end
 
-function Landmaster:Debug(map: _Math.NoiseSolver, resolution: number, scale: number):Frame
+--- Renders a map gui for the provided solver.
+function Landmaster:Debug(map: NoiseSolver, resolution: number, scale: number):Frame
 	local frame = Instance.new("Frame")
 	-- print("Start")
 	for x=1, resolution do
@@ -69,8 +69,8 @@ function Landmaster:Debug(map: _Math.NoiseSolver, resolution: number, scale: num
 	return frame
 end
 
---- Constructs a gridRegion.
-function Landmaster:SolveRegionTerrain(region:Region3): (Region3, Types.TerrainData<Enum.Material>, Types.TerrainData<number>)
+--- Given a world region3 it constructs a grid normalized region and the material + precision data tables needed for Terrain:WriteVoxels(). Should be parallel safe.
+function Landmaster:SolveRegionTerrain(region:Region3): (Region3, TerrainData<Enum.Material>, TerrainData<number>)
 	local start = region.CFrame.Position - region.Size/2
 	local finish = region.CFrame.Position + region.Size/2
 
@@ -153,8 +153,8 @@ function Landmaster:SolveRegionTerrain(region:Region3): (Region3, Types.TerrainD
 	return gridRegion, matGrid, preGrid
 end
 
-
-function Landmaster:BuildRegionTerrain(gridRegion: Region3, materialData: Types.TerrainData<Enum.Material>, precisionData: Types.TerrainData<number>)
+--- Writes voxels based on the returned values of SolveRegionTerrain.
+function Landmaster:BuildRegionTerrain(gridRegion: Region3, materialData: TerrainData<Enum.Material>, precisionData: TerrainData<number>)
 
 	Terrain:WriteVoxels(
 		gridRegion,
