@@ -21,7 +21,7 @@ return function(coreGui: ScreenGui)
 			Seed = 1229534,
 			Width = 1024*8,
 			HeightCeiling = 100,
-			WaterHeight = 25,
+			WaterHeight = 30,
 			Frequency = 4,
 			Origin = Vector2.new(0,0),
 			Biomes = {},

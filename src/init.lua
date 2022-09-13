@@ -71,9 +71,9 @@ function Landmaster:Debug(map: _Math.NoiseSolver, resolution: number, scale: num
 end
 
 --- Constructs a region.
-function Landmaster:BuildRegion(region: Region3): Model
-	local start = region.CFrame.Position - region.Size/2
-	local finish = region.CFrame.Position + region.Size/2
+function Landmaster:BuildRegion(mainRegion: Region3): Model
+	local start = mainRegion.CFrame.Position - mainRegion.Size/2
+	local finish = mainRegion.CFrame.Position + mainRegion.Size/2
 
 	start = Terrain:WorldToCell(start) * 4
 	finish = Terrain:WorldToCell(finish) * 4
@@ -95,21 +95,89 @@ function Landmaster:BuildRegion(region: Region3): Model
 	
 	regionModel.PrimaryPart = anchor
 
-	for x=start.X, finish.X, 4 do
-		task.wait()
-		for z=start.Z, finish.Z, 4 do
-			local position = Vector2.new(x,z)*4
-			local normalizedCoordinates = self.Solver:GetNormalizedCoordinatesFromPosition(position)
-			local heightAlpha = self.Solver:GetHeightAlpha(normalizedCoordinates)
-			local normalAlpha = self.Solver:GetNormalAlpha(normalizedCoordinates)
+	-- for x=start.X, finish.X, 4 do
+		-- task.wait()
+		-- for z=start.Z, finish.Z, 4 do
+	local originPosition = Vector2.new(start.X, start.Z)*4
+	
+	local heightCeiling: number = self._Config.HeightCeiling
+	local waterHeight: number = self._Config.WaterHeight
+
+	local regStart = Terrain:WorldToCell(Vector3.new(originPosition.X, 0, originPosition.Y))
+	local regSize = Vector2.new(finish.X - start.X, finish.Z - start.Z)
+	local region = Region3.new(
+		regStart,
+		regStart + Vector3.new(regSize.X, heightCeiling, regSize.Y)
+	):ExpandToGrid(4)
+	
+	local function create3dTable(size: Vector3)
+		local ret = {}
+		for x = 1, size.X do
+			ret[x] = {}
+			for y = 1, size.Y do
+				ret[x][y] = {}
+			end
+		end	
+		return ret
+	end
+	local layerCount = region.Size.Y/4
+	local xCount = region.Size.X/4
+	local zCount = region.Size.Z/4
+	local matGrid = create3dTable(Vector3.new(xCount,layerCount,zCount))
+	local preGrid = create3dTable(Vector3.new(xCount,layerCount,zCount))
+	local surfaceThickness = 2
+
+	for xIndex=1, xCount do
+		for zIndex=1, zCount do
+			
+			local columnPosition = regStart + Vector3.new(xIndex, 0, zIndex)*4
+			local normalizedCoordinates = self.Solver:GetNormalizedCoordinatesFromPosition(Vector2.new(columnPosition.X, columnPosition.Z))
+			local heightAlpha: number = self.Solver:GetHeightAlpha(normalizedCoordinates)
+			local normal = self.Solver:GetNormalAlpha(normalizedCoordinates)
 			local surfaceMaterial = self.Solver:GetSurfaceMaterial(normalizedCoordinates)
 
-			local heightCeiling: number = self._Config.HeightCeiling
-			local waterHeight: number = self._Config.WaterHeight
+			local height = heightAlpha * heightCeiling
 
-			TerrainUtil.fillToHeightAlpha(position, surfaceMaterial, heightAlpha, 4, waterHeight, heightCeiling, normalAlpha)
+			for yIndex=1, layerCount do
+				local focusAltitude = heightCeiling * yIndex / layerCount
+				local distFromSurface = math.abs(focusAltitude - height)*0.5
+				local material = Enum.Material.Air
+				if height >= focusAltitude then -- surface or ground
+					if height < waterHeight then
+						material = Enum.Material.Mud
+					elseif distFromSurface < surfaceThickness then
+						if normal > 0.8 then
+							material = Enum.Material.Rock
+						elseif normal > 0.7 then
+							material = Enum.Material.Ground
+						else
+							material = surfaceMaterial
+						end
+					else
+						material = Enum.Material.Ground
+					end
+				else
+					if focusAltitude < waterHeight then
+						material = Enum.Material.Water
+					else
+						material = Enum.Material.Air
+					end
+				end
+
+				local precision = if distFromSurface < 4 then distFromSurface/4 else 1
+
+				matGrid[xIndex][yIndex][zIndex] = material
+				preGrid[xIndex][yIndex][zIndex] = precision
+			end
 		end
 	end
+
+	Terrain:WriteVoxels(
+		region,
+		4,
+		matGrid,
+		preGrid
+	)
 
 	return regionModel
 end
