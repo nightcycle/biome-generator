@@ -30,6 +30,7 @@ export type LandmasterConfigData = {
 	},
 }
 
+
 export type Landmaster = {
 	__index: Landmaster,
 	_Maid: _Maid.Maid,
