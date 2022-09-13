@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[945],{7636:e=>{e.exports=JSON.parse('[{"type":"link","href":"/api/Landmaster","label":"\u200bLandmaster"}]')}}]);
