@@ -8,25 +8,54 @@ local Types = require(Package.Types)
 local Solver = {}
 Solver.__index = Solver
 
-function Solver.new(config: Types.LandmasterConfigData)
-	local HeightMap = config.Maps.Height or require(script.HeightSolver)(
-		config, 
-		require(script.TerrainSolver)(config), 
-		require(script.RiverSolver)(config)
-	)
-	local NormalMap = require(script.NormalSolver)(config, HeightMap)
+function Solver:GetMap<T>(key: string): ((Vector2) -> T)
+	assert(self._Maps[key] ~= nil, "No map at key "..tostring(key))
+	return self._Maps[key]
+end
 
+function Solver:SetMap<T>(key: string, map: _Math.NoiseSolver)
+	assert(map ~= nil, "Bad map")
+	self._Maps[key] = map
+end
+
+function Solver.new(config: Types.LandmasterConfigData)
 	local self = {
 		_Config = config,
-		Maps = {
-			Rain = config.Maps.Rain or require(script.RainSolver)(config),
-			Heat = config.Maps.Heat or require(script.HeatSolver)(config),
-			Normal = NormalMap,
-			Height = HeightMap,
-		},
+		_Maps = {},
 		_Maid = _Maid.new(),
 	}
 	setmetatable(self, Solver)
+
+	self:SetMap("Heat", require(script.HeatSolver)(config))
+	self:SetMap("Rain", require(script.RainSolver)(config))
+	self:SetMap("River", require(script.RiverSolver)(config))
+	self:SetMap("Topography", require(script.TopographySolver)(config))
+	self:SetMap("Flat", require(script.FlatSolver)(config))
+	self:SetMap("Height", require(script.HeightSolver)(
+		config, 
+		function() return self:GetMap("BaseHeight") end, 
+		function() return self:GetMap("Flat") end
+	))
+	self:SetMap("BaseHeight", require(script.BaseHeightSolver)(
+		config, 
+		function() return self:GetMap("Topography") end, 
+		function() return self:GetMap("River") end
+	))
+	self:SetMap("Normal", require(script.NormalSolver)(
+		config,
+		function() return self:GetMap("Height") end
+	))
+	self:SetMap("Material", require(script.MaterialSolver)(
+		config,
+		function() return self:GetMap("Heat") end, 
+		function() return self:GetMap("Rain") end,
+		function() return self:GetMap("Height") end
+	))
+
+	for k, map in pairs(config.Maps or {}) do
+		self:SetMap(k, map)
+	end
+
 	return self
 end
 
@@ -55,40 +84,6 @@ function Solver:GetNormalizedCoordinatesFromPosition(position: Vector2): Vector2
 	end
 
 	return Vector2.new(aX, aY)
-end
-
-function Solver:GetSurfaceMaterial(normalizedCoordinates: Vector2): Enum.Material
-	local heatMap: _Math.NoiseSolver = self.Maps.Heat
-	local rainMap: _Math.NoiseSolver = self.Maps.Rain
-
-	local heat = heatMap(normalizedCoordinates)
-	local rain = rainMap(normalizedCoordinates)
-
-	if heat > 0.66 then
-		if rain > 0.66 then
-			return Enum.Material.LeafyGrass
-		elseif rain > 0.33 then
-			return Enum.Material.Sandstone
-		else
-			return Enum.Material.Sandstone
-		end
-	elseif heat > 0.33 then
-		if rain > 0.66 then
-			return Enum.Material.LeafyGrass
-		elseif rain > 0.33 then
-			return Enum.Material.Grass
-		else
-			return Enum.Material.Ground
-		end
-	else
-		if rain > 0.66 then
-			return Enum.Material.Snow
-		elseif rain > 0.33 then
-			return Enum.Material.Glacier
-		else
-			return Enum.Material.Ground
-		end
-	end
 end
 
 function Solver:GetNormalAlpha(normalizedCoordinates: Vector2)

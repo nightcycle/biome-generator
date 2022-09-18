@@ -24,22 +24,25 @@ return function(coreGui: ScreenGui)
 			WaterHeight = 30,
 			Frequency = 4,
 			Origin = Vector2.new(0,0),
-			Maps = {},
 		})
+
 		local pos = Vector3.new(0,0,0)
 		local size = Vector3.new(1,1,1)
 		-- local updateStarted = false
+
+
 		local function update(dT: number)
 			if size == target.Size and pos == target.Position then return end
 			-- if updateStarted then return end
 			-- updateStarted = true
 			pos = target.Position
 			size = target.Size
-
-			local region, matGrid, preGrid = landmaster:SolveRegionTerrain(Region3.new(pos - size/2, pos + size/2))
+			local startTick = tick()
+			local region, matGrid, preGrid = landmaster:SolveRegionTerrain(Region3.new(pos - size/2, pos + size/2), 2^-1)
 
 			landmaster:BuildRegionTerrain(region, matGrid, preGrid)
-			
+
+			print("Duration", (tick() - startTick))
 			-- updateStarted = false
 		end
 		local index = 0

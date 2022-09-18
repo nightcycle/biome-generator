@@ -6,39 +6,27 @@ local _Maid = require(Packages.Maid)
 
 local Types = require(Package.Types)
 
-return function(config: Types.LandmasterConfigData, terrainSolver: _Math.NoiseSolver, riverSolver: _Math.NoiseSolver)
-	local map: _Math.NoiseSolver = _Math.Noise.Simplex.new()
-	map:SetSeed(config.Seed)
-	map:SetFrequency(config.Frequency)
-	map:SetAmplitude(1)
-	map:SetLacunarity(2)
-	map:SetPersistence(0.5)
+return function(config: Types.LandmasterConfigData, getBaseHeightMap: () -> Types.NoiseMap<number>, getFlatMap: () -> Types.NoiseMap<Vector2?>)
 
-	for i = 1, 4 do
-		local Octave = _Math.Noise.Simplex.new()
-		Octave:SetSeed(config.Seed * i)
-		map:InsertOctave(Octave)
-	end
+	local cache = {}
 
 	return function(alpha: Vector2): number
-		local baseValue = (map:Get(alpha)^1.5) * 2
-		if baseValue ~= baseValue then
-			baseValue = 0
+		if cache[alpha] then return cache[alpha] end
+
+		local baseHeightMap = getBaseHeightMap()
+
+		local flatMap = getFlatMap()
+		local flatPoint = flatMap(alpha)
+		local baseHeight = baseHeightMap(alpha)
+
+		if not flatPoint then 
+			cache[alpha] = baseHeight
+			return baseHeight 
 		end
+		assert(flatPoint ~= nil)
 
-		local terrainValue = terrainSolver(alpha)
-
-		baseValue = _Math.clamp(baseValue * 0.5 + 0.5 * terrainValue, 0, 1)
-		local distFromCenter = (Vector2.new(0.5, 0.5) - alpha).Magnitude
-		local linearReduction = _Math.max(1 - (distFromCenter / 0.5), 0)
-		local easedReduction =
-			_Math.Algebra.ease(linearReduction ^ 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
-		local easedHeight = easedReduction * baseValue
-
-		local riverValue = riverSolver(alpha)
-
-		local final = riverValue * _Math.clamp(easedHeight, 0, 1)
-
-		return final
+		local flatPointHeight = baseHeightMap(flatPoint)
+		cache[alpha] = flatPointHeight
+		return flatPointHeight
 	end
 end

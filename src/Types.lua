@@ -10,7 +10,7 @@ local Types = {}
 --- @within Landmaster
 --- Returns a deterministic value at position on map. The vector must be normalized to be within 0 and 1.
 
-type NoiseSolver = _Math.NoiseSolver
+export type NoiseMap<T> = (Vector2) -> T
 
 --- @type LandmasterConfigData {Seed: number,Origin: Vector2,Frequency: number,Width: number,HeightCeiling: number, WaterHeight: number,Maps: {Height: NoiseSolver?,Heat: NoiseSolver?,Rain: NoiseSolver?},}
 --- @within Landmaster
@@ -24,22 +24,39 @@ export type LandmasterConfigData = {
 	HeightCeiling: number,
 	WaterHeight: number,
 	Maps: {
-		Height: NoiseSolver?,
-		Heat: NoiseSolver?,
-		Rain: NoiseSolver?,
-	},
+		Height: NoiseMap<_Math.Alpha>?,
+		BaseHeight: NoiseMap<_Math.Alpha>?,
+		Heat: NoiseMap<_Math.Alpha>?,
+		Rain: NoiseMap<_Math.Alpha>?,
+		River: NoiseMap<_Math.Alpha>?,
+		Topography: NoiseMap<_Math.Alpha>?,
+		Normal: NoiseMap<_Math.Alpha>?,
+		Material: NoiseMap<Enum.Material>?,
+		Flat: NoiseMap<Vector2?>?,
+	}?,
 }
 
+--- @type TerrainColumnData {Height: number,Normal: _Math.Alpha,SurfaceMaterial: Enum.Material}
+--- @within Landmaster
+--- The data format used in solving each column of terrain.
+export type TerrainColumnData = {
+	Height: number,
+	Normal: _Math.Alpha,
+	SurfaceMaterial: Enum.Material
+}
 
 export type Landmaster = {
 	__index: Landmaster,
 	_Maid: _Maid.Maid,
 	_Config: LandmasterConfigData,
+	_Solver: {[string]: any},
 	new: (LandmasterConfigData) -> Landmaster,
 	Destroy: (Landmaster) -> nil,
-	Solver: {[string]: any},
-	Debug: (self: Landmaster, map: NoiseSolver, resolution: number, scale: number) -> Frame,
-	SolveRegionTerrain: (self: Landmaster, region:Region3) -> (Region3, TerrainData<Enum.Material>, TerrainData<number>),
+	Debug: (self: Landmaster, map: _Math.NoiseSolver, resolution: number, scale: number) -> Frame,
+	GetTerrainColumnData: (self: Landmaster, position: Vector3) -> TerrainColumnData,
+	GetMap: <T>(self: Landmaster, key: string) -> NoiseMap<T>,
+	SetMap: <T>(self: Landmaster, key: string, map: NoiseMap<T>) -> nil,
+	SolveRegionTerrain: (self: Landmaster, region:Region3, scale: _Math.Alpha?) -> (Region3, TerrainData<Enum.Material>, TerrainData<number>),
 	BuildRegionTerrain: (self: Landmaster, gridRegion: Region3, materialData: TerrainData<Enum.Material>, precisionData: TerrainData<number>) -> nil,
 }
 
