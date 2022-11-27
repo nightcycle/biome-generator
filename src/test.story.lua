@@ -23,6 +23,8 @@ return function(coreGui: ScreenGui)
 			HeightCeiling = 100,
 			WaterHeight = 30,
 			Frequency = 4,
+			Props = {},
+			WaterEnabled = true,
 			Origin = Vector2.new(0,0),
 		})
 

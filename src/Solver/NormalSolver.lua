@@ -9,7 +9,7 @@ local Types = require(Package.Types)
 return function(config: Types.LandmasterConfigData, getHeightMap: () -> Types.NoiseMap<number>)
 	
 	return function(alpha: Vector2): number
-		local step = 0.00001
+		local step = 0.000001
 		local upRightAlpha = alpha + Vector2.new(1,1)*step
 		local botLeftAlpha = alpha + Vector2.new(-1,-1)*step
 		local upRight = getHeightMap()(upRightAlpha)

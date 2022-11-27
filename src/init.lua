@@ -13,6 +13,16 @@ export type NoiseSolver = _Math.NoiseSolver
 export type LandmasterConfigData = Types.LandmasterConfigData
 export type TerrainData<T> = Types.TerrainData<T>
 export type Landmaster = Types.Landmaster
+export type NoiseMap<T> = Types.NoiseMap<T>
+
+-- private functions
+function worldToCell(position: Vector3): Vector3
+	return Vector3.new(
+		math.round(position.X/4),
+		math.round(position.Y/4),
+		math.round(position.Z/4)
+	)
+end
 
 --- @class Landmaster
 --- A configurable worker that can solve and build terrain.
@@ -85,38 +95,45 @@ function Landmaster:GetTerrainColumnData(columnPosition: Vector3): Types.Terrain
 	local heightMap = self:GetMap("Height")
 	local normalMap = self:GetMap("Normal")
 	local materialMap = self:GetMap("Material")
+	local propMap = self:GetMap("Prop")
 
 	local heightAlpha: number = heightMap(normalizedCoordinates)
 	local normal = normalMap(normalizedCoordinates)
 	local surfaceMaterial = materialMap(normalizedCoordinates)
-
+	local prop = propMap(normalizedCoordinates)
 	local heightCeiling: number = self._Config.HeightCeiling
 	local height = heightAlpha * heightCeiling
 
 	return {
+		Position = Vector3.new(
+			columnPosition.X, 
+			height, 
+			columnPosition.Z
+		),
 		Height = height,
 		SurfaceMaterial = surfaceMaterial,
 		Normal = normal,
+		Prop = prop,
 	}
 end
 
 --- Given a world region3 it constructs a grid normalized region and the material + precision data tables needed for Terrain:WriteVoxels(). Should be parallel safe. As 
-function Landmaster:SolveRegionTerrain(region:Region3, scale: _Math.Alpha?): (Region3, TerrainData<Enum.Material>, TerrainData<number>)
+function Landmaster:SolveRegionTerrain(region:Region3, scale: _Math.Alpha?): (Region3, TerrainData<Enum.Material>, TerrainData<number>, {[string]: Types.TerrainColumnData})
 	scale = scale or 1
 	assert(scale ~= nil)
 
 	local start = region.CFrame.Position - region.Size/2
 	local finish = region.CFrame.Position + region.Size/2
 
-	start = Terrain:WorldToCell(start) * 4
-	finish = Terrain:WorldToCell(finish) * 4
+	start = worldToCell(start) * 4
+	finish = worldToCell(finish) * 4
 
 	local originPosition = Vector2.new(start.X, start.Z)*4
 	
 	local heightCeiling: number = self._Config.HeightCeiling
 	local waterHeight: number = self._Config.WaterHeight
 
-	local regStart = Terrain:WorldToCell(Vector3.new(originPosition.X, 0, originPosition.Y))
+	local regStart = worldToCell(Vector3.new(originPosition.X, 0, originPosition.Y))
 	local regSize = Vector2.new(finish.X - start.X, finish.Z - start.Z)
 	local gridRegion = Region3.new(
 		regStart,
@@ -164,7 +181,7 @@ function Landmaster:SolveRegionTerrain(region:Region3, scale: _Math.Alpha?): (Re
 					material = Enum.Material.Ground
 				end
 			else
-				if focusAltitude < waterHeight then
+				if focusAltitude < waterHeight and self._Config.WaterEnabled then
 					material = Enum.Material.Water
 				else
 					material = Enum.Material.Air
@@ -174,7 +191,7 @@ function Landmaster:SolveRegionTerrain(region:Region3, scale: _Math.Alpha?): (Re
 			local precision = if distFromSurface < 4 then distFromSurface/4 else 1
 
 			matGrid[xIndex][yIndex][zIndex] = material
-			preGrid[xIndex][yIndex][zIndex] = precision
+			preGrid[xIndex][yIndex][zIndex] = if material == Enum.Material.Water then 0 else precision
 		end
 	end
 
@@ -253,13 +270,34 @@ function Landmaster:SolveRegionTerrain(region:Region3, scale: _Math.Alpha?): (Re
 						return aAlpha * aVal + bAlpha * bVal + cAlpha * cVal
 					end
 
-					local height = triLerp(aAlpha, aData.Height, bAlpha, bData.Height, cAlpha, cData.Height)
-					local normal = triLerp(aAlpha, aData.Normal, bAlpha, bData.Normal, cAlpha, cData.Normal)
+					local height = triLerp(
+						aAlpha, 
+						aData.Height, 
+						bAlpha, 
+						bData.Height, 
+						cAlpha, 
+						cData.Height
+					)
+					local normal = triLerp(
+						aAlpha, 
+						aData.Normal, 
+						bAlpha, 
+						bData.Normal, 
+						cAlpha, 
+						cData.Normal
+					)
+				
 
 					return {
+						Position = Vector3.new(
+							pV2.X, 
+							height, 
+							pV2.Y
+						),
 						Height = height,
 						SurfaceMaterial = surfaceMaterial,
 						Normal = normal,
+						Prop = nil,
 					}
 				end
 				
@@ -280,14 +318,11 @@ function Landmaster:SolveRegionTerrain(region:Region3, scale: _Math.Alpha?): (Re
 		end
 	end
 
-	return gridRegion, matGrid, preGrid
+	return gridRegion, matGrid, preGrid, solveMap
 end
 
 --- Writes voxels based on the returned values of SolveRegionTerrain.
-function Landmaster:BuildRegionTerrain(gridRegion: Region3, materialData: TerrainData<Enum.Material>, precisionData: TerrainData<number>)
-	-- print("REGION", gridRegion)
-	-- print("SIZE", gridRegion.Size)
-	-- print("MAT", materialData)
+function Landmaster:BuildRegionTerrain(gridRegion: Region3, materialData: TerrainData<Enum.Material>, precisionData: TerrainData<number>, solveMap: {[string]: Types.TerrainColumnData})
 	
 	Terrain:WriteVoxels(
 		gridRegion,
@@ -295,6 +330,28 @@ function Landmaster:BuildRegionTerrain(gridRegion: Region3, materialData: Terrai
 		materialData,
 		precisionData
 	)
+
+	for k, columnData in pairs(solveMap) do
+		if columnData.Prop then
+			local propData = columnData.Prop
+			local prop = propData.Template:Clone()
+			local cf = propData.CFrame + columnData.Position
+			prop:PivotTo(cf)
+			for j, dep in ipairs(prop:GetDescendants()) do
+				if dep:IsA("BasePart") then
+					local offset = cf:Inverse() * dep.CFrame
+					dep.Size *= propData.Scale
+					dep.CFrame = cf * CFrame.fromMatrix(
+						offset.Position * propData.Scale,
+						offset.XVector,
+						offset.YVector,
+						offset.ZVector
+					)
+				end
+			end
+		end
+	end
+
 	return nil
 end
 

@@ -49,14 +49,28 @@ function Solver.new(config: Types.LandmasterConfigData)
 		config,
 		function() return self:GetMap("Heat") end, 
 		function() return self:GetMap("Rain") end,
+		function() return self:GetMap("Normal") end,
 		function() return self:GetMap("Height") end
 	))
-
+	self:SetMap("Prop", require(script.PropSolver)(
+		config,
+		function() return self:GetMap("Height") end,
+		function() return self:GetMap("Material") end,
+		function() return self:GetMap("Normal") end
+	))
 	for k, map in pairs(config.Maps or {}) do
 		self:SetMap(k, map)
 	end
 
 	return self
+end
+
+function Solver:GetPositionFromNormalizedCoordinates(coordinates: Vector2): Vector2
+	local origin: Vector2 = self._Config.Origin
+	local width: number = self._Config.Width
+	local size = Vector2.new(1,1) * width
+	local minPos = origin - size * 0.5
+	return minPos + coordinates*size
 end
 
 function Solver:GetNormalizedCoordinatesFromPosition(position: Vector2): Vector2

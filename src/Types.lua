@@ -16,6 +16,17 @@ export type NoiseMap<T> = (Vector2) -> T
 --- @within Landmaster
 --- The data format usable when configuring Landmaster
 
+export type PropTemplateData = {
+	Template: Model,
+	Scarcity: number,
+}
+
+export type PropSolveData = {
+	Template: Model,
+	CFrame: CFrame,
+	Scale: number,
+}
+
 export type LandmasterConfigData = {
 	Seed: number,
 	Origin: Vector2,
@@ -23,12 +34,15 @@ export type LandmasterConfigData = {
 	Width: number,
 	HeightCeiling: number,
 	WaterHeight: number,
+	WaterEnabled: boolean,
+	Props: {[Enum.Material]: {[number]: PropTemplateData}},
 	Maps: {
 		Height: NoiseMap<_Math.Alpha>?,
 		BaseHeight: NoiseMap<_Math.Alpha>?,
 		Heat: NoiseMap<_Math.Alpha>?,
 		Rain: NoiseMap<_Math.Alpha>?,
 		River: NoiseMap<_Math.Alpha>?,
+		Prop: NoiseMap<string?>?,
 		Topography: NoiseMap<_Math.Alpha>?,
 		Normal: NoiseMap<_Math.Alpha>?,
 		Material: NoiseMap<Enum.Material>?,
@@ -40,9 +54,11 @@ export type LandmasterConfigData = {
 --- @within Landmaster
 --- The data format used in solving each column of terrain.
 export type TerrainColumnData = {
+	Position: Vector3,
 	Height: number,
 	Normal: _Math.Alpha,
-	SurfaceMaterial: Enum.Material
+	SurfaceMaterial: Enum.Material,
+	Prop: PropSolveData?,
 }
 
 export type Landmaster = {
@@ -56,8 +72,8 @@ export type Landmaster = {
 	GetTerrainColumnData: (self: Landmaster, position: Vector3) -> TerrainColumnData,
 	GetMap: <T>(self: Landmaster, key: string) -> NoiseMap<T>,
 	SetMap: <T>(self: Landmaster, key: string, map: NoiseMap<T>) -> nil,
-	SolveRegionTerrain: (self: Landmaster, region:Region3, scale: _Math.Alpha?) -> (Region3, TerrainData<Enum.Material>, TerrainData<number>),
-	BuildRegionTerrain: (self: Landmaster, gridRegion: Region3, materialData: TerrainData<Enum.Material>, precisionData: TerrainData<number>) -> nil,
+	SolveRegionTerrain: (self: Landmaster, region:Region3, scale: _Math.Alpha?) -> (Region3, TerrainData<Enum.Material>, TerrainData<number>, {[string]: TerrainColumnData}),
+	BuildRegionTerrain: (self: Landmaster, gridRegion: Region3, materialData: TerrainData<Enum.Material>, precisionData: TerrainData<number>, solveMap: {[string]: TerrainColumnData}) -> nil,
 }
 
 
