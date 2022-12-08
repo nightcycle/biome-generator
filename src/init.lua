@@ -150,11 +150,11 @@ function Landmaster:SolveRegionTerrain(region:Region3, scale: _Math.Alpha?): (Re
 		end	
 		return ret
 	end
-	local layerCount = gridRegion.Size.Y/4
-	local xCount = gridRegion.Size.X/4
-	local zCount = gridRegion.Size.Z/4
-	local matGrid = create3dTable(Vector3.new(xCount,layerCount,zCount))
-	local preGrid = create3dTable(Vector3.new(xCount,layerCount,zCount))
+	local layerCount = math.ceil(gridRegion.Size.Y/4)
+	local xCount = math.ceil(gridRegion.Size.X/4)
+	local zCount = math.ceil(gridRegion.Size.Z/4)
+	local materialGrid = create3dTable(Vector3.new(xCount,layerCount,zCount))
+	local precisionGrid = create3dTable(Vector3.new(xCount,layerCount,zCount))
 	local surfaceThickness = 8
 
 	local increment = math.floor(1/scale)
@@ -162,40 +162,46 @@ function Landmaster:SolveRegionTerrain(region:Region3, scale: _Math.Alpha?): (Re
 	local importantXIndeces = {}
 	local importantZIndeces = {}
 	local solveMap: {[string]: Types.TerrainColumnData} = {}
-	local function constructPillar(xIndex: number, zIndex: number, height: number, normal: number, surfaceMaterial: Enum.Material)
-		for yIndex=1, layerCount do
-			local focusAltitude = heightCeiling * yIndex / layerCount
-			local distFromSurface = math.abs(focusAltitude - height)*0.5
+	local allAir = true
 
-			local material = Enum.Material.Air
-			if height >= focusAltitude then -- surface or ground
-				if distFromSurface < surfaceThickness then
-					if normal > 0.9 then
-						material = Enum.Material.Rock
-					elseif normal > 0.8 then
-						material = Enum.Material.Ground
+	local function constructPillar(xIndex: number, zIndex: number, height: number, normal: number, surfaceMaterial: Enum.Material)
+		if xIndex <= xCount and zIndex <= zCount then
+			for yIndex=1, layerCount do
+				local focusAltitude = heightCeiling * yIndex / layerCount
+				local distFromSurface = math.abs(focusAltitude - height)*0.5
+
+				local material = Enum.Material.Air
+				if height >= focusAltitude then -- surface or ground
+					if distFromSurface < surfaceThickness then
+						if normal > 0.9 then
+							material = Enum.Material.Rock
+						elseif normal > 0.8 then
+							material = Enum.Material.Ground
+						else
+							material = surfaceMaterial
+						end
 					else
-						material = surfaceMaterial
+						material = Enum.Material.Ground
 					end
 				else
-					material = Enum.Material.Ground
+					if focusAltitude < waterHeight and self._Config.WaterEnabled then
+						material = Enum.Material.Water
+					else
+						material = Enum.Material.Air
+					end
 				end
-			else
-				if focusAltitude < waterHeight and self._Config.WaterEnabled then
-					material = Enum.Material.Water
-				else
-					material = Enum.Material.Air
+	
+				local precision = if distFromSurface < 4 then distFromSurface/4 else 1
+				materialGrid[xIndex][yIndex][zIndex] = material
+				precisionGrid[xIndex][yIndex][zIndex] = if material == Enum.Material.Water then 0 else precision
+				if material ~= Enum.Material.Air or (material == Enum.Material.Water and self._Config.WaterEnabled) or precisionGrid[xIndex][yIndex][zIndex] > 0 then
+					allAir = false
 				end
 			end
-
-			local precision = if distFromSurface < 4 then distFromSurface/4 else 1
-
-			matGrid[xIndex][yIndex][zIndex] = material
-			preGrid[xIndex][yIndex][zIndex] = if material == Enum.Material.Water then 0 else precision
 		end
 	end
-
-	for xIndex=1, xCount do
+	
+	for xIndex=1, xCount+1 do
 		if xIndex % increment == 0 or (xIndex == xCount or xIndex == 1) then
 			table.insert(importantXIndeces, xIndex)
 			for zIndex=1, zCount do
@@ -318,7 +324,11 @@ function Landmaster:SolveRegionTerrain(region:Region3, scale: _Math.Alpha?): (Re
 		end
 	end
 
-	return gridRegion, matGrid, preGrid, solveMap
+	if allAir then
+		return Region3.new(Vector3.new(0,0,0), Vector3.new(0,0,0)), {}, {}, solveMap
+	else
+		return gridRegion, materialGrid, precisionGrid, solveMap
+	end
 end
 
 --- Writes voxels based on the returned values of SolveRegionTerrain.
@@ -354,5 +364,6 @@ function Landmaster:BuildRegionTerrain(gridRegion: Region3, materialData: Terrai
 
 	return nil
 end
+
 
 return Landmaster

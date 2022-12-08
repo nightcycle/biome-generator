@@ -64,34 +64,33 @@ return function(
 		local baseMaterial: Enum.Material
 		if height < waterHeight then
 			baseMaterial = Enum.Material.Mud
-		end
-
-		if heat > 0.66 then
-			if rain > 0.66 then
-				baseMaterial = Enum.Material.LeafyGrass
-			elseif rain > 0.33 then
-				baseMaterial = Enum.Material.Sandstone
-			else
-				baseMaterial = Enum.Material.Sandstone
-			end
-		elseif heat > 0.33 then
-			if rain > 0.66 then
-				baseMaterial = Enum.Material.LeafyGrass
-			elseif rain > 0.33 then
-				baseMaterial = Enum.Material.Grass
-			else
-				baseMaterial = Enum.Material.Ground
-			end
 		else
-			if rain > 0.66 then
-				baseMaterial = Enum.Material.Snow
-			elseif rain > 0.33 then
-				baseMaterial = Enum.Material.Glacier
+			if heat > 0.66 then
+				if rain > 0.66 then
+					baseMaterial = Enum.Material.LeafyGrass
+				elseif rain > 0.33 then
+					baseMaterial = Enum.Material.Sandstone
+				else
+					baseMaterial = Enum.Material.Sandstone
+				end
+			elseif heat > 0.33 then
+				if rain > 0.66 then
+					baseMaterial = Enum.Material.LeafyGrass
+				elseif rain > 0.33 then
+					baseMaterial = Enum.Material.Grass
+				else
+					baseMaterial = Enum.Material.Ground
+				end
 			else
-				baseMaterial = Enum.Material.Ground
+				if rain > 0.66 then
+					baseMaterial = Enum.Material.Snow
+				elseif rain > 0.33 then
+					baseMaterial = Enum.Material.Glacier
+				else
+					baseMaterial = Enum.Material.Ground
+				end
 			end
 		end
-
 		local erosionData: ErosionData? = Materials[baseMaterial]
 		if not erosionData then
 			return baseMaterial

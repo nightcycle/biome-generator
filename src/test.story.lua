@@ -40,9 +40,9 @@ return function(coreGui: ScreenGui)
 			pos = target.Position
 			size = target.Size
 			local startTick = tick()
-			local region, matGrid, preGrid = landmaster:SolveRegionTerrain(Region3.new(pos - size/2, pos + size/2), 2^-1)
+			local region, matGrid, preGrid, solveMap = landmaster:SolveRegionTerrain(Region3.new(pos - size/2, pos + size/2), 2^-1)
 
-			landmaster:BuildRegionTerrain(region, matGrid, preGrid)
+			landmaster:BuildRegionTerrain(region, matGrid, preGrid, solveMap)
 
 			print("Duration", (tick() - startTick))
 			-- updateStarted = false
