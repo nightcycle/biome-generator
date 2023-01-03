@@ -1,15 +1,20 @@
 --!strict
 local Package = script.Parent.Parent
 local Packages = Package.Parent
-local _Math = require(Packages.Math)
+local NoiseUtil = require(Packages.NoiseUtil)
+local CurveUtil = require(Packages.CurveUtil)
 local _Maid = require(Packages.Maid)
 
 local Types = require(Package.Types)
 
-return function(config: Types.LandmasterConfigData, getTerrainMap: () -> Types.NoiseMap<number>, getRiverMap: () -> Types.NoiseMap<number>)
+return function(
+	config: Types.LandmasterConfigData, 
+	getTerrainMap: () -> Types.NoiseMap<number>, 
+	getRiverMap: () -> Types.NoiseMap<number>
+)
 	local cache = {}
 
-	local map: _Math.NoiseSolver = _Math.Noise.Simplex.new()
+	local map: NoiseUtil.NoiseSolver = NoiseUtil.Simplex.new()
 	map:SetSeed(config.Seed)
 	map:SetFrequency(config.Frequency)
 	map:SetAmplitude(1)
@@ -17,7 +22,7 @@ return function(config: Types.LandmasterConfigData, getTerrainMap: () -> Types.N
 	map:SetPersistence(0.5)
 
 	for i = 1, 4 do
-		local Octave = _Math.Noise.Simplex.new()
+		local Octave = NoiseUtil.Simplex.new()
 		Octave:SetSeed(config.Seed * i)
 		map:InsertOctave(Octave)
 	end
@@ -32,16 +37,15 @@ return function(config: Types.LandmasterConfigData, getTerrainMap: () -> Types.N
 
 		local terrainValue = getTerrainMap()(alpha)
 
-		baseValue = _Math.clamp(baseValue * 0.5 + 0.5 * terrainValue, 0, 1)
+		baseValue = math.clamp(baseValue * 0.5 + 0.5 * terrainValue, 0, 1)
 		local distFromCenter = (Vector2.new(0.5, 0.5) - alpha).Magnitude
-		local linearReduction = _Math.max(1 - (distFromCenter / 0.5), 0)
-		local easedReduction =
-			_Math.Algebra.ease(linearReduction ^ 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+		local linearReduction = math.max(1 - (distFromCenter / 0.5), 0)
+		local easedReduction = CurveUtil.ease(linearReduction ^ 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
 		local easedHeight = easedReduction * baseValue
 
 		local riverValue = getRiverMap()(alpha)
 
-		local final = riverValue * _Math.clamp(easedHeight, 0, 1)
+		local final = riverValue * math.clamp(easedHeight, 0, 1)
 	
 		cache[alpha] = final
 	

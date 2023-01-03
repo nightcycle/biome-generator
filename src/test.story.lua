@@ -1,7 +1,6 @@
 --!strict
 local Package = script.Parent
 local Packages = Package.Parent
-local _Math = require(Packages.Math)
 local _Maid = require(Packages.Maid)
 
 local RunService = game:GetService("RunService")
@@ -40,9 +39,9 @@ return function(coreGui: ScreenGui)
 			pos = target.Position
 			size = target.Size
 			local startTick = tick()
-			local region, matGrid, preGrid, solveMap = landmaster:SolveRegionTerrain(Region3.new(pos - size/2, pos + size/2), 2^-1)
+			local region, matGrid, preGrid, _solveMap = landmaster:SolveRegionTerrain(Region3.new(pos - size/2, pos + size/2), 2^-1)
 
-			landmaster:BuildRegionTerrain(region, matGrid, preGrid, solveMap)
+			landmaster:BuildRegionTerrain(region, matGrid, preGrid)
 
 			print("Duration", (tick() - startTick))
 			-- updateStarted = false

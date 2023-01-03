@@ -1,15 +1,16 @@
 --!strict
 local Package = script.Parent.Parent
 local Packages = Package.Parent
-local _Math = require(Packages.Math)
+local NoiseUtil = require(Packages.NoiseUtil)
+local CurveUtil = require(Packages.CurveUtil)
 local _Maid = require(Packages.Maid)
 
 local Types = require(Package.Types)
-local Vector = _Math.Algebra.Vector
+local Vector = require(Packages.Vector)
 
 return function(config: Types.LandmasterConfigData)
 
-	local map = _Math.Noise.Cellular.new()
+	local map: NoiseUtil.NoiseSolver = NoiseUtil.Cellular.new()
 	map:SetSeed(config.Seed)
 	map:SetFrequency(config.Frequency)
 	map:SetAmplitude(1)
@@ -21,10 +22,10 @@ return function(config: Types.LandmasterConfigData)
 			baseValue = 0
 		end
 
-		local equatorWeight = 1 - _Math.abs(alpha.Y - 0.5) / 0.5
+		local equatorWeight = 1 - math.abs(alpha.Y - 0.5) / 0.5
 
-		local easedReduction = _Math.Algebra.ease(equatorWeight ^ 0.175, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+		local easedReduction = CurveUtil.ease(equatorWeight ^ 0.175, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
 
-		return _Math.clamp((baseValue * 1.25 - 0.125) * easedReduction, 0, 1)
+		return math.clamp((baseValue * 1.25 - 0.125) * easedReduction, 0, 1)
 	end
 end

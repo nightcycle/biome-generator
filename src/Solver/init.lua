@@ -1,30 +1,93 @@
 --!strict
 local Package = script.Parent
 local Packages = Package.Parent
-local _Math = require(Packages.Math)
+local NoiseUtil = require(Packages.NoiseUtil)
 local _Maid = require(Packages.Maid)
 local Types = require(Package.Types)
 
-local Solver = {}
-Solver.__index = Solver
+type NoiseSolver = NoiseUtil.NoiseSolver
+type NoiseMap<T> = Types.NoiseMap<T>
+type PropSolveData = Types.PropSolveData
 
-function Solver:GetMap<T>(key: string): ((Vector2) -> T)
+-- Heat = number
+-- Rain = number
+-- River = number
+-- Topography = number
+-- Flat = Vector2?
+-- Height = number
+-- BaseHeight = number
+-- Normal = number
+-- Material = Enum.Material
+-- Prop = PropSolveData
+
+export type GetMap<T> = (
+	((self: T, key: "Heat") -> NoiseMap<number>)
+	& ((self: T, key: "Rain") -> NoiseMap<number>)
+	& ((self: T, key: "River") -> NoiseMap<number>)
+	& ((self: T, key: "Topography") -> NoiseMap<number>)
+	& ((self: T, key: "Flat") -> NoiseMap<Vector2?>)
+	& ((self: T, key: "Height") -> NoiseMap<number>)
+	& ((self: T, key: "BaseHeight") -> NoiseMap<number>)
+	& ((self: T, key: "Normal") -> NoiseMap<number>)
+	& ((self: T, key: "Material") -> NoiseMap<Enum.Material>)
+)
+
+export type SetMap<T> = (
+	((self: T, key: "Heat", map: NoiseMap<number>) -> nil)
+	& ((self: T, key: "Rain", map: NoiseMap<number>) -> nil)
+	& ((self: T, key: "River", map: NoiseMap<number>) -> nil)
+	& ((self: T, key: "Topography", map: NoiseMap<number>) -> nil)
+	& ((self: T, key: "Flat", map: NoiseMap<Vector2?>) -> nil)
+	& ((self: T, key: "Height", map: NoiseMap<number>) -> nil)
+	& ((self: T, key: "BaseHeight", map: NoiseMap<number>) -> nil)
+	& ((self: T, key: "Normal", map: NoiseMap<number>) -> nil)
+	& ((self: T, key: "Material", map: NoiseMap<Enum.Material>) -> nil)
+)
+
+export type MapSolver = {
+	__index: MapSolver,
+	_Maid: _Maid.Maid,
+	_Config: Types.LandmasterConfigData,
+	_Maps: {
+		Heat: NoiseMap<number>,
+		Rain: NoiseMap<number>,
+		River: NoiseMap<number>,
+		Topography: NoiseMap<number>,
+		Flat: NoiseMap<Vector2?>,
+		Height: NoiseMap<number>,
+		BaseHeight: NoiseMap<number>,
+		Normal: NoiseMap<number>,
+		Material: NoiseMap<Enum.Material>,
+	},
+	GetMap: GetMap<MapSolver>,
+	SetMap: SetMap<MapSolver>,
+	GetPositionFromNormalizedCoordinates: (self: MapSolver, coordinates: Vector2) -> Vector2,
+	GetNormalizedCoordinatesFromPosition: (self: MapSolver, coordinates: Vector2) -> Vector2,
+	GetNormalAlpha: (self: MapSolver, normalizedCoordinates: Vector2) -> number,
+	GetHeightAlpha: (self: MapSolver, normalizedCoordinates: Vector2) -> number,
+	new: (config: Types.LandmasterConfigData) -> MapSolver,
+}
+
+local MapSolver: MapSolver = {} :: any
+MapSolver.__index = MapSolver
+
+function MapSolver:GetMap(key: any): any
 	assert(self._Maps[key] ~= nil, "No map at key "..tostring(key))
 	return self._Maps[key]
 end
 
-function Solver:SetMap<T>(key: string, map: _Math.NoiseSolver)
+function MapSolver:SetMap(key: string, map: NoiseMap<any>)
 	assert(map ~= nil, "Bad map")
 	self._Maps[key] = map
+	return nil
 end
 
-function Solver.new(config: Types.LandmasterConfigData)
-	local self = {
+function MapSolver.new(config: Types.LandmasterConfigData)
+	local self: MapSolver = setmetatable({
 		_Config = config,
 		_Maps = {},
 		_Maid = _Maid.new(),
-	}
-	setmetatable(self, Solver)
+	}, MapSolver) :: any
 
 	self:SetMap("Heat", require(script.HeatSolver)(config))
 	self:SetMap("Rain", require(script.RainSolver)(config))
@@ -52,12 +115,7 @@ function Solver.new(config: Types.LandmasterConfigData)
 		function() return self:GetMap("Normal") end,
 		function() return self:GetMap("Height") end
 	))
-	self:SetMap("Prop", require(script.PropSolver)(
-		config,
-		function() return self:GetMap("Height") end,
-		function() return self:GetMap("Material") end,
-		function() return self:GetMap("Normal") end
-	))
+
 	for k, map in pairs(config.Maps or {}) do
 		self:SetMap(k, map)
 	end
@@ -65,7 +123,7 @@ function Solver.new(config: Types.LandmasterConfigData)
 	return self
 end
 
-function Solver:GetPositionFromNormalizedCoordinates(coordinates: Vector2): Vector2
+function MapSolver:GetPositionFromNormalizedCoordinates(coordinates: Vector2): Vector2
 	local origin: Vector2 = self._Config.Origin
 	local width: number = self._Config.Width
 	local size = Vector2.new(1,1) * width
@@ -73,7 +131,7 @@ function Solver:GetPositionFromNormalizedCoordinates(coordinates: Vector2): Vect
 	return minPos + coordinates*size
 end
 
-function Solver:GetNormalizedCoordinatesFromPosition(position: Vector2): Vector2
+function MapSolver:GetNormalizedCoordinatesFromPosition(position: Vector2): Vector2
 	local origin: Vector2 = self._Config.Origin
 	local width: number = self._Config.Width
 
@@ -100,14 +158,14 @@ function Solver:GetNormalizedCoordinatesFromPosition(position: Vector2): Vector2
 	return Vector2.new(aX, aY)
 end
 
-function Solver:GetNormalAlpha(normalizedCoordinates: Vector2)
-	local normalMap: _Math.NoiseSolver = self.Maps.Normal
+function MapSolver:GetNormalAlpha(normalizedCoordinates: Vector2): number
+	local normalMap: NoiseMap<number> = self._Maps.Normal
 	return normalMap(normalizedCoordinates)
 end
 
-function Solver:GetHeightAlpha(normalizedCoordinates: Vector2)
-	local heightMap: _Math.NoiseSolver = self.Maps.Height
+function MapSolver:GetHeightAlpha(normalizedCoordinates: Vector2): number
+	local heightMap: NoiseMap<number> = self._Maps.Height
 	return heightMap(normalizedCoordinates)
 end
 
-return Solver
+return MapSolver

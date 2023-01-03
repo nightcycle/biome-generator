@@ -1,12 +1,14 @@
 --!strict
 local Package = script.Parent.Parent
 local Packages = Package.Parent
-local _Math = require(Packages.Math)
 local _Maid = require(Packages.Maid)
-
 local Types = require(Package.Types)
 
-return function(config: Types.LandmasterConfigData, getBaseHeightMap: () -> Types.NoiseMap<number>, getFlatMap: () -> Types.NoiseMap<Vector2?>)
+return function(
+	config: Types.LandmasterConfigData, 
+	getBaseHeightMap: () -> Types.NoiseMap<number>, 
+	getFlatMap: () -> Types.NoiseMap<Vector2?>
+)
 
 	local cache = {}
 

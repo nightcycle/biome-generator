@@ -1,7 +1,7 @@
 --!strict
 local Package = script.Parent
 local Packages = Package.Parent
-local _Math = require(Packages.Math)
+local NoiseUtil = require(Packages.NoiseUtil)
 local _Maid = require(Packages.Maid)
 
 local Types = {}
@@ -12,10 +12,7 @@ local Types = {}
 
 export type NoiseMap<T> = (Vector2) -> T
 
---- @type LandmasterConfigData {Seed: number,Origin: Vector2,Frequency: number,Width: number,HeightCeiling: number, WaterHeight: number,Maps: {Height: NoiseSolver?,Heat: NoiseSolver?,Rain: NoiseSolver?},}
---- @within Landmaster
---- The data format usable when configuring Landmaster
-
+export type Alpha = number
 export type PropTemplateData = {
 	Template: Model,
 	Scarcity: number,
@@ -27,6 +24,9 @@ export type PropSolveData = {
 	Scale: number,
 }
 
+--- @type LandmasterConfigData {Seed: number,Origin: Vector2,Frequency: number,Width: number,HeightCeiling: number, WaterHeight: number,Maps: {Height: NoiseSolver?,Heat: NoiseSolver?,Rain: NoiseSolver?},}
+--- @within Landmaster
+--- The data format usable when configuring Landmaster
 export type LandmasterConfigData = {
 	Seed: number,
 	Origin: Vector2,
@@ -37,45 +37,29 @@ export type LandmasterConfigData = {
 	WaterEnabled: boolean,
 	Props: {[Enum.Material]: {[number]: PropTemplateData}},
 	Maps: {
-		Height: NoiseMap<_Math.Alpha>?,
-		BaseHeight: NoiseMap<_Math.Alpha>?,
-		Heat: NoiseMap<_Math.Alpha>?,
-		Rain: NoiseMap<_Math.Alpha>?,
-		River: NoiseMap<_Math.Alpha>?,
+		Height: NoiseMap<Alpha>?,
+		BaseHeight: NoiseMap<Alpha>?,
+		Heat: NoiseMap<Alpha>?,
+		Rain: NoiseMap<Alpha>?,
+		River: NoiseMap<Alpha>?,
 		Prop: NoiseMap<string?>?,
-		Topography: NoiseMap<_Math.Alpha>?,
-		Normal: NoiseMap<_Math.Alpha>?,
+		Topography: NoiseMap<Alpha>?,
+		Normal: NoiseMap<Alpha>?,
 		Material: NoiseMap<Enum.Material>?,
 		Flat: NoiseMap<Vector2?>?,
 	}?,
 }
 
---- @type TerrainColumnData {Height: number,Normal: _Math.Alpha,SurfaceMaterial: Enum.Material}
+--- @type TerrainColumnData {Height: number,Normal: Alpha,SurfaceMaterial: Enum.Material}
 --- @within Landmaster
 --- The data format used in solving each column of terrain.
 export type TerrainColumnData = {
 	Position: Vector3,
 	Height: number,
-	Normal: _Math.Alpha,
+	Normal: Alpha,
 	SurfaceMaterial: Enum.Material,
 	Prop: PropSolveData?,
 }
-
-export type Landmaster = {
-	__index: Landmaster,
-	_Maid: _Maid.Maid,
-	_Config: LandmasterConfigData,
-	_Solver: {[string]: any},
-	new: (LandmasterConfigData) -> Landmaster,
-	Destroy: (Landmaster) -> nil,
-	Debug: (self: Landmaster, map: _Math.NoiseSolver, resolution: number, scale: number) -> Frame,
-	GetTerrainColumnData: (self: Landmaster, position: Vector3) -> TerrainColumnData,
-	GetMap: <T>(self: Landmaster, key: string) -> NoiseMap<T>,
-	SetMap: <T>(self: Landmaster, key: string, map: NoiseMap<T>) -> nil,
-	SolveRegionTerrain: (self: Landmaster, region:Region3, scale: _Math.Alpha?) -> (Region3, TerrainData<Enum.Material>, TerrainData<number>, {[string]: TerrainColumnData}),
-	BuildRegionTerrain: (self: Landmaster, gridRegion: Region3, materialData: TerrainData<Enum.Material>, precisionData: TerrainData<number>, solveMap: {[string]: TerrainColumnData}) -> nil,
-}
-
 
 --- @type TerrainData {[number]: {[number]: {[number]: T}}}
 --- @within Landmaster
